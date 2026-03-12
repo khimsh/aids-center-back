@@ -30,19 +30,26 @@ There is also a top-level `app.py`, but it is a minimal hello-world app and is n
 
 ## Environment Variables
 
-The app reads configuration from `.env`.
+The app and Docker Compose read configuration from `.env`.
 
-Current required variable:
+Required variables:
 
 - `DATABASE_URL`
+- `POSTGRES_DB`
+- `POSTGRES_USER`
+- `POSTGRES_PASSWORD`
+
+Optional variable:
+
+- `POSTGRES_PORT` (defaults to `5432`)
 
 Example format:
 
 ```env
-DATABASE_URL=postgresql+asyncpg://aidscenter:localdevpassword@localhost:5432/aidscenter
+DATABASE_URL=postgresql+asyncpg://<db_user>:<db_password>@localhost:5432/<db_name>
 ```
 
-The repository already includes a local development `.env`. For production or shared environments, replace development secrets before deployment.
+Use `.env.example` as a starting point for your local `.env`. Do not commit real credentials.
 
 ## Install Dependencies
 
@@ -57,6 +64,8 @@ pip install -r requirements.txt
 ## Docker Commands
 
 Docker Compose is used here to run PostgreSQL only. The FastAPI app itself currently runs locally on your machine, not in a container.
+
+Compose reads `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD`, and optional `POSTGRES_PORT` from `.env`. The database container now requires the credentials to be set explicitly instead of falling back to tracked defaults.
 
 Start the database:
 
@@ -163,6 +172,11 @@ Current notable routes:
 - `POST /api/articles`
 - `PUT /api/articles/{article_id}`
 - `DELETE /api/articles/{article_id}`
+- `GET /api/doctors`
+- `GET /api/doctors/{doctor_id}`
+- `POST /api/doctors`
+- `PUT /api/doctors/{doctor_id}`
+- `DELETE /api/doctors/{doctor_id}`
 
 ## Notes
 
