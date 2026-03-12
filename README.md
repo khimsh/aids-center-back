@@ -177,6 +177,11 @@ Current notable routes:
 - `POST /api/doctors`
 - `PUT /api/doctors/{doctor_id}`
 - `DELETE /api/doctors/{doctor_id}`
+- `GET /api/job-postings`
+- `GET /api/job-postings/{job_id}`
+- `POST /api/job-postings`
+- `PUT /api/job-postings/{job_id}`
+- `DELETE /api/job-postings/{job_id}`
 
 ## Notes
 

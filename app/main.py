@@ -2,6 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.routers.articles import router as articles_router
 from app.routers.doctors import router as doctors_router
+from app.routers.job_postings import router as job_postings_router
 
 app = FastAPI(
     title="AIDS Center API",
@@ -24,6 +25,7 @@ app.add_middleware(
 # Routers
 app.include_router(articles_router)
 app.include_router(doctors_router)
+app.include_router(job_postings_router)
 
 
 @app.get("/health")

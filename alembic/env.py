@@ -24,6 +24,7 @@ if config.config_file_name is not None:
 from app.database import Base
 from app.models.article import Article   # import every model you add
 from app.models.doctor import Doctor
+from app.models.job_posting import JobPosting
 
 target_metadata = Base.metadata
 
