@@ -1,0 +1,20 @@
+services:
+  db:
+    image: postgres:16
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: aidscenter
+      POSTGRES_USER: aidscenter
+      POSTGRES_PASSWORD: localdevpassword
+    ports:
+      - "5432:5432"    # host:container — exposes postgres to your Mac
+    volumes:
+      - postgres_data:/var/lib/postgresql/data    # named volume → postgres data dir
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U aidscenter"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  postgres_data:    # declares the named volume — Docker manages the actual location
