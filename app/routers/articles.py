@@ -4,6 +4,7 @@ from sqlalchemy import select, func, update, delete
 from datetime import datetime, timezone
 from typing import Optional
 
+from app.core.deps import require_admin, require_editor
 from app.database import get_db
 from app.models.article import Article
 from app.schemas.article import (
@@ -121,12 +122,13 @@ async def get_article(
     return article
 
 
-# ── ADMIN ENDPOINTS (auth guard added later) ────────────────────────────────
+# ── ADMIN ENDPOINTS ────────────────────────────────────────────────────────
 
 @router.post("", response_model=ArticleOut, status_code=201)
 async def create_article(
     payload: ArticleCreate,
     db:      AsyncSession = Depends(get_db),
+    _:       AsyncSession = Depends(require_editor),
 ):
     base = slugify(payload.slug or payload.title_en or payload.title_ka)
     slug = await unique_slug(base, db)
@@ -155,6 +157,7 @@ async def update_article(
     article_id: int,
     payload:    ArticleUpdate,
     db:         AsyncSession = Depends(get_db),
+    _:          AsyncSession = Depends(require_editor),
 ):
     """Update an existing article. Only provided fields are changed."""
     result = await db.execute(select(Article).where(Article.id == article_id))
@@ -180,6 +183,7 @@ async def update_article(
 async def delete_article(
     article_id: int,
     db:         AsyncSession = Depends(get_db),
+    _:          AsyncSession = Depends(require_admin),
 ):
     """Permanently delete an article."""
     result = await db.execute(select(Article).where(Article.id == article_id))

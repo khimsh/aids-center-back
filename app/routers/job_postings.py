@@ -4,6 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.deps import require_admin, require_editor
 from app.database import get_db
 from app.models.job_posting import JobPosting
 from app.schemas.job_posting import JobPostingCreate, JobPostingOut, JobPostingUpdate
@@ -37,12 +38,13 @@ async def get_job_posting(job_id: int, db: AsyncSession = Depends(get_db)):
     return job
 
 
-# ── ADMIN ENDPOINTS (auth guard added later) ────────────────────────────────
+# ── ADMIN ENDPOINTS ────────────────────────────────────────────────────────
 
 @router.post("", response_model=JobPostingOut, status_code=201)
 async def create_job_posting(
     payload: JobPostingCreate,
     db: AsyncSession = Depends(get_db),
+    _: AsyncSession = Depends(require_editor),
 ):
     data = payload.model_dump(exclude={"published_at"})
 
@@ -62,6 +64,7 @@ async def update_job_posting(
     job_id: int,
     payload: JobPostingUpdate,
     db: AsyncSession = Depends(get_db),
+    _: AsyncSession = Depends(require_editor),
 ):
     result = await db.execute(select(JobPosting).where(JobPosting.id == job_id))
     job = result.scalar_one_or_none()
@@ -83,7 +86,11 @@ async def update_job_posting(
 
 
 @router.delete("/{job_id}", status_code=204)
-async def delete_job_posting(job_id: int, db: AsyncSession = Depends(get_db)):
+async def delete_job_posting(
+    job_id: int,
+    db: AsyncSession = Depends(get_db),
+    _: AsyncSession = Depends(require_admin),
+):
     result = await db.execute(select(JobPosting).where(JobPosting.id == job_id))
     job = result.scalar_one_or_none()
     if not job:

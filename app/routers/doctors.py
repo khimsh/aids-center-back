@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.deps import require_admin, require_editor
 from app.database import get_db
 from app.models.doctor import Doctor
 from app.schemas.doctor import DoctorCreate, DoctorOut, DoctorUpdate
@@ -26,7 +27,11 @@ async def get_doctor(doctor_id: int, db: AsyncSession = Depends(get_db)):
 
 
 @router.post("", response_model=DoctorOut, status_code=201)
-async def create_doctor(payload: DoctorCreate, db: AsyncSession = Depends(get_db)):
+async def create_doctor(
+    payload: DoctorCreate,
+    db: AsyncSession = Depends(get_db),
+    _: AsyncSession = Depends(require_editor),
+):
     doctor = Doctor(**payload.model_dump())
     db.add(doctor)
     await db.flush()
@@ -39,6 +44,7 @@ async def update_doctor(
     doctor_id: int,
     payload: DoctorUpdate,
     db: AsyncSession = Depends(get_db),
+    _: AsyncSession = Depends(require_editor),
 ):
     result = await db.execute(select(Doctor).where(Doctor.id == doctor_id))
     doctor = result.scalar_one_or_none()
@@ -55,7 +61,11 @@ async def update_doctor(
 
 
 @router.delete("/{doctor_id}", status_code=204)
-async def delete_doctor(doctor_id: int, db: AsyncSession = Depends(get_db)):
+async def delete_doctor(
+    doctor_id: int,
+    db: AsyncSession = Depends(get_db),
+    _: AsyncSession = Depends(require_admin),
+):
     result = await db.execute(select(Doctor).where(Doctor.id == doctor_id))
     doctor = result.scalar_one_or_none()
     if not doctor:
