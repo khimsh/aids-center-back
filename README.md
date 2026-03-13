@@ -38,10 +38,13 @@ Required variables:
 - `POSTGRES_DB`
 - `POSTGRES_USER`
 - `POSTGRES_PASSWORD`
+- `SECRET_KEY` — used to sign JWTs; use a long random string
 
-Optional variable:
+Optional variables:
 
 - `POSTGRES_PORT` (defaults to `5432`)
+- `ALGORITHM` (defaults to `HS256`)
+- `ACCESS_TOKEN_EXPIRE_MINUTES` (defaults to `60`)
 
 Example format:
 
@@ -151,6 +154,18 @@ Show migration history:
 alembic history
 ```
 
+## Create Admin / Editor Users
+
+There is no registration endpoint. Use the management script to create users:
+
+```bash
+python scripts/create_user.py \
+  --email admin@example.com \
+  --full-name "Jane Doe" \
+  --password "yourpassword" \
+  --role admin   # or editor
+```
+
 ## Typical Local Development Flow
 
 ```bash
@@ -158,6 +173,7 @@ docker compose up -d
 source venv/bin/activate
 pip install -r requirements.txt
 alembic upgrade head
+python scripts/create_user.py --email admin@example.com --full-name "Admin" --password "yourpassword" --role admin
 uvicorn app.main:app --reload
 ```
 
@@ -166,6 +182,10 @@ uvicorn app.main:app --reload
 Current notable routes:
 
 - `GET /health`
+- `POST /auth/login`
+- `GET /auth/me`
+- `POST /auth/logout`
+- `POST /auth/refresh`
 - `GET /api/articles`
 - `GET /api/articles/featured`
 - `GET /api/articles/{slug}`

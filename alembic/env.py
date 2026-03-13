@@ -25,6 +25,7 @@ from app.database import Base
 from app.models.article import Article   # import every model you add
 from app.models.doctor import Doctor
 from app.models.job_posting import JobPosting
+from app.models.user import User
 
 target_metadata = Base.metadata
 

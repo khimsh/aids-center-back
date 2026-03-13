@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.routers.articles import router as articles_router
+from app.routers.auth import router as auth_router
 from app.routers.doctors import router as doctors_router
 from app.routers.job_postings import router as job_postings_router
 
@@ -16,6 +17,7 @@ app.add_middleware(
     allow_origins=[
         "http://localhost:4321",  # Astro dev
         "http://localhost:3000",
+        "http://localhost:5173",  # Vite / React admin dev
     ],
     allow_credentials=True,
     allow_methods=["*"],
@@ -23,6 +25,7 @@ app.add_middleware(
 )
 
 # Routers
+app.include_router(auth_router)
 app.include_router(articles_router)
 app.include_router(doctors_router)
 app.include_router(job_postings_router)
