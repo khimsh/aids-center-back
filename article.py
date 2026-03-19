@@ -14,8 +14,6 @@ class Article(Base):
     title_en      = Column(Text, nullable=True)
     body_ka       = Column(Text, nullable=True)   # Quill delta JSON or HTML
     body_en       = Column(Text, nullable=True)
-    excerpt_ka    = Column(Text, nullable=True)   # short summary for cards
-    excerpt_en    = Column(Text, nullable=True)
 
     # Media
     image_url     = Column(String(500), nullable=True)

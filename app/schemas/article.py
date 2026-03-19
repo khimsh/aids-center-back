@@ -25,8 +25,6 @@ class ArticleCreate(BaseModel):
     title_en:     Optional[str] = None
     body_ka:      Optional[str] = None
     body_en:      Optional[str] = None
-    excerpt_ka:   Optional[str] = None
-    excerpt_en:   Optional[str] = None
     image_url:    Optional[str] = None
     category:     Optional[str] = None
     featured:     bool = False
@@ -49,8 +47,6 @@ class ArticleUpdate(BaseModel):
     title_en:     Optional[str] = None
     body_ka:      Optional[str] = None
     body_en:      Optional[str] = None
-    excerpt_ka:   Optional[str] = None
-    excerpt_en:   Optional[str] = None
     image_url:    Optional[str] = None
     category:     Optional[str] = None
     featured:     Optional[bool] = None
@@ -75,8 +71,6 @@ class ArticleOut(BaseModel):
     title_en:     Optional[str]
     body_ka:      Optional[str]
     body_en:      Optional[str]
-    excerpt_ka:   Optional[str]
-    excerpt_en:   Optional[str]
     image_url:    Optional[str]
     category:     Optional[str]
     featured:     bool
@@ -84,6 +78,7 @@ class ArticleOut(BaseModel):
     published_at: Optional[datetime]
     created_at:   datetime
     updated_at:   datetime
+    created_by:   Optional[int]
 
     model_config = {"from_attributes": True}
 
@@ -94,13 +89,13 @@ class ArticleListOut(BaseModel):
     slug:         str
     title_ka:     str
     title_en:     Optional[str]
-    excerpt_ka:   Optional[str]
-    excerpt_en:   Optional[str]
     image_url:    Optional[str]
     category:     Optional[str]
     featured:     bool
+    published:    bool
     published_at: Optional[datetime]
     created_at:   datetime
+    created_by:   Optional[int]
 
     model_config = {"from_attributes": True}
 

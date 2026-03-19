@@ -1,12 +1,13 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func, update, delete
+from sqlalchemy import select, func
 from datetime import datetime, timezone
 from typing import Optional
 
-from app.core.deps import require_admin, require_editor
+from app.core.deps import get_optional_current_user, require_admin, require_editor
 from app.database import get_db
 from app.models.article import Article
+from app.models.user import User
 from app.schemas.article import (
     ArticleCreate,
     ArticleUpdate,
@@ -36,21 +37,39 @@ async def unique_slug(base: str, db: AsyncSession, exclude_id: int = None) -> st
         counter += 1
 
 
+# ── Helpers ────────────────────────────────────────────────────────────────
+
+def _check_ownership(article: Article, user: User) -> None:
+    """Raise 403 if an editor doesn't own the article."""
+    if user.role == "editor" and article.created_by != user.id:
+        raise HTTPException(status_code=403, detail="Not authorized to access this article")
+
+
 # ── PUBLIC ENDPOINTS ────────────────────────────────────────────────────────
 
 @router.get("", response_model=PaginatedArticles)
 async def list_articles(
     page:     int            = Query(1, ge=1),
-    per_page: int            = Query(10, ge=1, le=50),
+    per_page: int            = Query(10, ge=1, le=200),
+    include_drafts: bool     = Query(False),
     category: Optional[str] = Query(None),
     lang:     Optional[str] = Query(None),  # reserved for future use
     db:       AsyncSession   = Depends(get_db),
+    current_user: Optional[User] = Depends(get_optional_current_user),
 ):
     """
-    Paginated list of published articles.
+    Paginated list of articles.
     Optionally filter by category: news | program | equipment | event | vacancy
     """
-    base_q = select(Article).where(Article.published == True)
+    if include_drafts:
+        if not current_user:
+            raise HTTPException(status_code=401, detail="Authentication required to include drafts")
+        base_q = select(Article)
+        if current_user.role == "editor":
+            base_q = base_q.where(Article.created_by == current_user.id)
+        # admin: no filter — sees everything
+    else:
+        base_q = select(Article).where(Article.published == True)
 
     if category:
         base_q = base_q.where(Article.category == category)
@@ -111,14 +130,26 @@ async def get_featured(
 async def get_article(
     slug: str,
     db:   AsyncSession = Depends(get_db),
+    current_user: Optional[User] = Depends(get_optional_current_user),
 ):
-    """Single published article by slug."""
-    result = await db.execute(
-        select(Article).where(Article.slug == slug, Article.published == True)
-    )
+    """
+    Single article by slug.
+    - No auth: published only.
+    - Admin: any article (including drafts).
+    - Editor: own drafts + any published article.
+    """
+    result = await db.execute(select(Article).where(Article.slug == slug))
     article = result.scalar_one_or_none()
     if not article:
         raise HTTPException(status_code=404, detail="Article not found")
+
+    if not article.published:
+        if not current_user:
+            raise HTTPException(status_code=404, detail="Article not found")
+        if current_user.role == "editor" and article.created_by != current_user.id:
+            raise HTTPException(status_code=404, detail="Article not found")
+        # admin: allowed
+
     return article
 
 
@@ -128,15 +159,13 @@ async def get_article(
 async def create_article(
     payload: ArticleCreate,
     db:      AsyncSession = Depends(get_db),
-    _:       AsyncSession = Depends(require_editor),
+    current_user: User = Depends(require_editor),
 ):
     base = slugify(payload.slug or payload.title_en or payload.title_ka)
     slug = await unique_slug(base, db)
 
-    # Exclude both slug and published_at from the dump
     data = payload.model_dump(exclude={"slug", "published_at"})
 
-    # Set published_at automatically if publishing now
     published_at = None
     if payload.published:
         published_at = payload.published_at or datetime.now(timezone.utc)
@@ -145,6 +174,7 @@ async def create_article(
         **data,
         slug=slug,
         published_at=published_at,
+        created_by=current_user.id,
     )
     db.add(article)
     await db.flush()
@@ -157,17 +187,18 @@ async def update_article(
     article_id: int,
     payload:    ArticleUpdate,
     db:         AsyncSession = Depends(get_db),
-    _:          AsyncSession = Depends(require_editor),
+    current_user: User = Depends(require_editor),
 ):
-    """Update an existing article. Only provided fields are changed."""
+    """Update an article. Editors may only update their own articles."""
     result = await db.execute(select(Article).where(Article.id == article_id))
     article = result.scalar_one_or_none()
     if not article:
         raise HTTPException(status_code=404, detail="Article not found")
 
+    _check_ownership(article, current_user)
+
     updates = payload.model_dump(exclude_unset=True)
 
-    # Set published_at when publishing for the first time
     if updates.get("published") and not article.published:
         updates.setdefault("published_at", datetime.now(timezone.utc))
 
@@ -183,11 +214,14 @@ async def update_article(
 async def delete_article(
     article_id: int,
     db:         AsyncSession = Depends(get_db),
-    _:          AsyncSession = Depends(require_admin),
+    current_user: User = Depends(require_editor),
 ):
-    """Permanently delete an article."""
+    """Delete an article. Editors may only delete their own; admins can delete any."""
     result = await db.execute(select(Article).where(Article.id == article_id))
     article = result.scalar_one_or_none()
     if not article:
         raise HTTPException(status_code=404, detail="Article not found")
+
+    _check_ownership(article, current_user)
+
     await db.delete(article)

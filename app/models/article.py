@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Text, Boolean, DateTime
+from sqlalchemy import Column, ForeignKey, Integer, String, Text, Boolean, DateTime
 from sqlalchemy.sql import func
 from app.database import Base
 
@@ -8,14 +8,13 @@ class Article(Base):
 
     id            = Column(Integer, primary_key=True, index=True)
     slug          = Column(String(255), unique=True, nullable=False, index=True)
+    created_by    = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True)
 
     # Bilingual content
     title_ka      = Column(Text, nullable=False)
     title_en      = Column(Text, nullable=True)
     body_ka       = Column(Text, nullable=True)   # Quill delta JSON or HTML
     body_en       = Column(Text, nullable=True)
-    excerpt_ka    = Column(Text, nullable=True)   # short summary for cards
-    excerpt_en    = Column(Text, nullable=True)
 
     # Media
     image_url     = Column(String(500), nullable=True)
