@@ -8,12 +8,14 @@ import re
 
 def slugify(text: str) -> str:
     """
-    Basic slug generator. Works for English titles.
-    For Georgian titles, falls back to a sanitised version.
+    Slug generator that preserves non-ASCII Unicode characters (e.g., Georgian).
     """
     text = text.lower().strip()
-    text = re.sub(r"[^\w\s-]", "", text)
+    # Keep Unicode word characters, spaces, and hyphens
+    text = re.sub(r"[^\w\s-]", "", text, flags=re.UNICODE)
+    # Collapse multiple spaces/underscores/hyphens into single hyphen
     text = re.sub(r"[\s_-]+", "-", text)
+    # Strip leading/trailing hyphens
     text = re.sub(r"^-+|-+$", "", text)
     return text or "article"
 

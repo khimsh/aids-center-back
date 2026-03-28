@@ -3,6 +3,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func
 from datetime import datetime, timezone
 from typing import Optional
+from pathlib import Path
 
 from app.core.deps import get_optional_current_user, require_editor
 from app.database import get_db
@@ -19,8 +20,40 @@ from app.schemas.article import (
 
 router = APIRouter(prefix="/api/articles", tags=["articles"])
 
+# ── Image cleanup helper ───────────────────────────────────────────────────
 
-# ── Slug uniqueness helper ──────────────────────────────────────────────────
+BASE_DIR = Path(__file__).resolve().parent.parent.parent
+UPLOADS_DIR = BASE_DIR / "uploads"
+
+
+def _delete_image_file(image_url: str) -> None:
+    """
+    Delete image file from disk if it exists and is in UPLOADS_DIR.
+    Fails silently if file doesn't exist or permission denied.
+    """
+    if not image_url:
+        return
+    
+    # Only handle local upload URLs like "/uploads/abc123.jpg"
+    if not image_url.startswith("/uploads/"):
+        return
+
+    filename = image_url[len("/uploads/"):]
+    if not filename:
+        return
+
+    try:
+        uploads_root = UPLOADS_DIR.resolve()
+        file_path = (UPLOADS_DIR / filename).resolve()
+
+        # Prevent path traversal and only delete regular files under uploads/
+        if uploads_root in file_path.parents and file_path.is_file():
+            file_path.unlink()
+    except OSError:
+        # Do not fail article deletion if file cleanup fails
+        pass
+
+
 
 async def unique_slug(base: str, db: AsyncSession, exclude_id: int = None) -> str:
     """Appends -2, -3 etc. until the slug is unique."""
@@ -201,10 +234,14 @@ async def delete_article(
     db:         AsyncSession = Depends(get_db),
     current_user: User = Depends(require_editor),
 ):
-    """Delete an article. Admins and editors can delete any article."""
+    """Delete an article and clean up attached images. Admins and editors can delete any article."""
     result = await db.execute(select(Article).where(Article.id == article_id))
     article = result.scalar_one_or_none()
     if not article:
         raise HTTPException(status_code=404, detail="Article not found")
+
+    # Clean up image file if present
+    if article.image_url:
+        _delete_image_file(article.image_url)
 
     await db.delete(article)
