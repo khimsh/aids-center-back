@@ -8,7 +8,8 @@ import re
 
 def slugify(text: str) -> str:
     """
-    Slug generator that preserves non-ASCII Unicode characters (e.g., Georgian).
+    Slug generator that preserves non-ASCII Unicode characters
+    and limits output to 5 words.
     """
     text = text.lower().strip()
     # Keep Unicode word characters, spaces, and hyphens
@@ -17,6 +18,9 @@ def slugify(text: str) -> str:
     text = re.sub(r"[\s_-]+", "-", text)
     # Strip leading/trailing hyphens
     text = re.sub(r"^-+|-+$", "", text)
+    # Limit slug to first 5 words
+    parts = [part for part in text.split("-") if part]
+    text = "-".join(parts[:5])
     return text or "article"
 
 
@@ -32,7 +36,6 @@ class ArticleCreate(BaseModel):
     featured:     bool = False
     published:    bool = False
     published_at: Optional[datetime] = None
-    slug:         Optional[str] = None  # auto-generated if not provided
 
     @field_validator("category")
     @classmethod

@@ -181,10 +181,10 @@ async def create_article(
     db:      AsyncSession = Depends(get_db),
     current_user: User = Depends(require_editor),
 ):
-    base = slugify(payload.slug or payload.title_en or payload.title_ka)
+    base = slugify(payload.title_en or payload.title_ka)
     slug = await unique_slug(base, db)
 
-    data = payload.model_dump(exclude={"slug", "published_at"})
+    data = payload.model_dump(exclude={"published_at"})
 
     published_at = None
     if payload.published:

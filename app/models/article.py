@@ -24,13 +24,10 @@ class Article(Base):
     # values: 'news' | 'program' | 'equipment' | 'event' | 'vacancy'
 
     # Publishing
-    featured      = Column(Boolean, default=False, nullable=False)
-    published     = Column(Boolean, default=False, nullable=False)
+    featured      = Column(Boolean, server_default="false", nullable=False)
+    published     = Column(Boolean, server_default="false", nullable=False)
     published_at  = Column(DateTime(timezone=True), nullable=True)
 
     # Timestamps
     created_at    = Column(DateTime(timezone=True), server_default=func.now())
-    updated_at = Column(DateTime(timezone=True), server_default=func.now())
-
-    featured  = Column(Boolean, server_default="false", nullable=False)
-    published = Column(Boolean, server_default="false", nullable=False)
+    updated_at    = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
