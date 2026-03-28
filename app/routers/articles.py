@@ -4,7 +4,7 @@ from sqlalchemy import select, func
 from datetime import datetime, timezone
 from typing import Optional
 
-from app.core.deps import get_optional_current_user, require_admin, require_editor
+from app.core.deps import get_optional_current_user, require_editor
 from app.database import get_db
 from app.models.article import Article
 from app.models.user import User
@@ -37,14 +37,6 @@ async def unique_slug(base: str, db: AsyncSession, exclude_id: int = None) -> st
         counter += 1
 
 
-# ── Helpers ────────────────────────────────────────────────────────────────
-
-def _check_ownership(article: Article, user: User) -> None:
-    """Raise 403 if an editor doesn't own the article."""
-    if user.role == "editor" and article.created_by != user.id:
-        raise HTTPException(status_code=403, detail="Not authorized to access this article")
-
-
 # ── PUBLIC ENDPOINTS ────────────────────────────────────────────────────────
 
 @router.get("", response_model=PaginatedArticles)
@@ -65,9 +57,7 @@ async def list_articles(
         if not current_user:
             raise HTTPException(status_code=401, detail="Authentication required to include drafts")
         base_q = select(Article)
-        if current_user.role == "editor":
-            base_q = base_q.where(Article.created_by == current_user.id)
-        # admin: no filter — sees everything
+        # admin and editor: no filter — both see everything
     else:
         base_q = select(Article).where(Article.published == True)
 
@@ -135,8 +125,7 @@ async def get_article(
     """
     Single article by slug.
     - No auth: published only.
-    - Admin: any article (including drafts).
-    - Editor: own drafts + any published article.
+    - Admin/editor: any article (including drafts).
     """
     result = await db.execute(select(Article).where(Article.slug == slug))
     article = result.scalar_one_or_none()
@@ -146,9 +135,7 @@ async def get_article(
     if not article.published:
         if not current_user:
             raise HTTPException(status_code=404, detail="Article not found")
-        if current_user.role == "editor" and article.created_by != current_user.id:
-            raise HTTPException(status_code=404, detail="Article not found")
-        # admin: allowed
+        # authenticated admin/editor: allowed
 
     return article
 
@@ -189,13 +176,11 @@ async def update_article(
     db:         AsyncSession = Depends(get_db),
     current_user: User = Depends(require_editor),
 ):
-    """Update an article. Editors may only update their own articles."""
+    """Update an article. Admins and editors can update any article."""
     result = await db.execute(select(Article).where(Article.id == article_id))
     article = result.scalar_one_or_none()
     if not article:
         raise HTTPException(status_code=404, detail="Article not found")
-
-    _check_ownership(article, current_user)
 
     updates = payload.model_dump(exclude_unset=True)
 
@@ -216,12 +201,10 @@ async def delete_article(
     db:         AsyncSession = Depends(get_db),
     current_user: User = Depends(require_editor),
 ):
-    """Delete an article. Editors may only delete their own; admins can delete any."""
+    """Delete an article. Admins and editors can delete any article."""
     result = await db.execute(select(Article).where(Article.id == article_id))
     article = result.scalar_one_or_none()
     if not article:
         raise HTTPException(status_code=404, detail="Article not found")
-
-    _check_ownership(article, current_user)
 
     await db.delete(article)

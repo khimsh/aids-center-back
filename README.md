@@ -10,7 +10,7 @@ This repository does not currently define a `Makefile`, `justfile`, or package-m
 - FastAPI
 - SQLAlchemy async engine
 - Alembic migrations
-- PostgreSQL 16 via Docker Compose
+- PostgreSQL 18 via Docker Compose
 
 ## Project Entry Point
 
@@ -73,6 +73,13 @@ Compose reads `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD`, and optional 
 Start the database:
 
 ```bash
+docker compose up -d
+```
+
+If you have switched from an older PostgreSQL Docker image to PostgreSQL 18 and do not need to keep the old local data, reset the volume first:
+
+```bash
+docker compose down -v --remove-orphans
 docker compose up -d
 ```
 
@@ -202,9 +209,12 @@ Current notable routes:
 - `POST /api/job-postings`
 - `PUT /api/job-postings/{job_id}`
 - `DELETE /api/job-postings/{job_id}`
+- `POST /api/uploads/image`
 
 ## Notes
 
 - `docker-compose.yml` provisions PostgreSQL with a named volume called `postgres_data`.
+- With PostgreSQL 18, the named volume is mounted at `/var/lib/postgresql` to match the current upstream image layout.
 - Alembic loads `DATABASE_URL` from `.env` through `alembic/env.py`.
 - SQLAlchemy is configured in async mode, so the database URL must use the `postgresql+asyncpg` driver.
+- Uploaded images are stored locally in `uploads/` and are served from `/uploads/<filename>`.
