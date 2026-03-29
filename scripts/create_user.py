@@ -20,7 +20,6 @@ from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, Asyn
 
 from app.core.security import hash_password
 from app.models.user import User
-from app.database import Base
 
 DATABASE_URL = os.getenv("DATABASE_URL")
 

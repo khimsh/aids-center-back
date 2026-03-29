@@ -13,7 +13,6 @@ from app.schemas.article import (
     ArticleCreate,
     ArticleUpdate,
     ArticleOut,
-    ArticleListOut,
     PaginatedArticles,
     slugify,
 )
@@ -33,7 +32,7 @@ def _delete_image_file(image_url: str) -> None:
     """
     if not image_url:
         return
-    
+
     # Only handle local upload URLs like "/uploads/abc123.jpg"
     if not image_url.startswith("/uploads/"):
         return
@@ -52,8 +51,6 @@ def _delete_image_file(image_url: str) -> None:
     except OSError:
         # Do not fail article deletion if file cleanup fails
         pass
-
-
 
 async def unique_slug(base: str, db: AsyncSession, exclude_id: int = None) -> str:
     """Appends -2, -3 etc. until the slug is unique."""
@@ -96,6 +93,9 @@ async def list_articles(
 
     if category:
         base_q = base_q.where(Article.category == category)
+
+    # Reserved for future language filtering; keep param in API for compatibility.
+    _ = lang
 
     # Total count
     count_q = select(func.count()).select_from(base_q.subquery())
@@ -207,7 +207,7 @@ async def update_article(
     article_id: int,
     payload:    ArticleUpdate,
     db:         AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_editor),
+    _current_user: User = Depends(require_editor),
 ):
     """Update an article. Admins and editors can update any article."""
     result = await db.execute(select(Article).where(Article.id == article_id))
@@ -232,7 +232,7 @@ async def update_article(
 async def delete_article(
     article_id: int,
     db:         AsyncSession = Depends(get_db),
-    current_user: User = Depends(require_editor),
+    _current_user: User = Depends(require_editor),
 ):
     """Delete an article and clean up attached images. Admins and editors can delete any article."""
     result = await db.execute(select(Article).where(Article.id == article_id))

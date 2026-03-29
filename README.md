@@ -64,6 +64,12 @@ source venv/bin/activate
 pip install -r requirements.txt
 ```
 
+Install test/dev dependencies:
+
+```bash
+pip install -r requirements-dev.txt
+```
+
 ## Docker Commands
 
 Docker Compose is used here to run PostgreSQL only. The FastAPI app itself currently runs locally on your machine, not in a container.
@@ -179,10 +185,38 @@ python scripts/create_user.py \
 docker compose up -d
 source venv/bin/activate
 pip install -r requirements.txt
+pip install -r requirements-dev.txt
 alembic upgrade head
 python scripts/create_user.py --email admin@example.com --full-name "Admin" --password "yourpassword" --role admin
 uvicorn app.main:app --reload
 ```
+
+## Test Suite
+
+The project includes a pytest suite under `tests/` that covers:
+
+- health and auth endpoints
+- article list/detail/create/update/delete behavior
+- slug generation constraints (Unicode support, max 5 words)
+- role-based access controls (admin/editor/public)
+- doctor and job posting CRUD permissions
+- user-management endpoints
+- image upload validations and file cleanup on article delete
+
+Run tests:
+
+```bash
+source venv/bin/activate
+python -m pytest -q
+```
+
+Pytest configuration lives in `pytest.ini`.
+
+## CI
+
+GitHub Actions runs the test suite on every push and pull request via:
+
+- `.github/workflows/tests.yml`
 
 ## API Surface
 
@@ -210,6 +244,10 @@ Current notable routes:
 - `PUT /api/job-postings/{job_id}`
 - `DELETE /api/job-postings/{job_id}`
 - `POST /api/uploads/image`
+- `GET /api/users`
+- `POST /api/users`
+- `DELETE /api/users/{user_id}`
+- `PATCH /api/users/{user_id}/password`
 
 ## Notes
 
@@ -218,3 +256,4 @@ Current notable routes:
 - Alembic loads `DATABASE_URL` from `.env` through `alembic/env.py`.
 - SQLAlchemy is configured in async mode, so the database URL must use the `postgresql+asyncpg` driver.
 - Uploaded images are stored locally in `uploads/` and are served from `/uploads/<filename>`.
+- `GET /api/articles?include_drafts=true` requires a valid Bearer token.
