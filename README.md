@@ -179,6 +179,25 @@ python scripts/create_user.py \
   --role admin   # or editor
 ```
 
+## Import Doctors From aidscenter.ge
+
+You can bootstrap or refresh doctor data from the public team/CV pages:
+
+```bash
+source venv/bin/activate
+python scripts/import_doctors_from_aidscenter.py
+```
+
+Useful options:
+
+```bash
+# Parse only, no DB writes
+python scripts/import_doctors_from_aidscenter.py --dry-run
+
+# Limit imported rows (for quick smoke tests)
+python scripts/import_doctors_from_aidscenter.py --limit 3
+```
+
 ## Typical Local Development Flow
 
 ```bash
@@ -237,6 +256,13 @@ Current notable routes:
 - `GET /api/doctors/{doctor_id}`
 - `POST /api/doctors`
 - `PUT /api/doctors/{doctor_id}`
+- `PATCH /api/doctors/reorder`
+- `PATCH /api/doctors/reorder-by-ids`
+- `PATCH /api/doctors/reorder-move`
+- `GET /api/doctors/{doctor_id}/translations`
+- `GET /api/doctors/{doctor_id}/translations/{lang}`
+- `POST /api/doctors/{doctor_id}/translations`
+- `PUT /api/doctors/{doctor_id}/translations/{lang}`
 - `DELETE /api/doctors/{doctor_id}`
 - `GET /api/job-postings`
 - `GET /api/job-postings/{job_id}`
